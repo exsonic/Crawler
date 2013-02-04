@@ -15,8 +15,7 @@ class ExportPipeline(object):
             for key in item['question']:
                 item['question'][key] = self.cleanString(item['question'][key])
                 #convert to absolute time
-                if  key == 'submitTime' and len(item['question'][key]) == 4:
-                    print item['question'][key]
+                if  key == 'submitTime' and len(item['question'][key].split()) == 6:
                     days = int(item['question'][key].split()[0])
                     hours = int(item['question'][key].split()[3])
                     item['question'][key] = str(int(time.time() - (days * 3600 * 24) - (hours * 3600)))
@@ -31,11 +30,15 @@ class ExportPipeline(object):
                                             
                     post[key] = self.cleanString(post[key])
                     #convert to absolute time
-                    if key == 'postTime':
+                    if key == 'postTime' and len(post[key].split()) == 7:
                         days = int(post[key].split()[1])
                         hours = int(post[key].split()[4])
                         post[key] = str(int(time.time() - (days * 3600 * 24) - (hours * 3600)))
-        
+                    elif key == 'postTime' and len(post[key].split()) == 4:
+                        days = int(post[key].split()[1])
+                        post[key] = str(int(time.time() - (days * 3600 * 24)))
+                    
+                    
         if isinstance(item, JAUsers):
             for expert in item['experts']:
                 for key in expert:

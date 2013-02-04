@@ -6,12 +6,9 @@ import json, os
 
 class JALinkSpider(CrawlSpider):
     name = 'JALinks'
-  
-    def __init__(self):
-        self.start_urls = ['http://www.justanswer.com/cell-phones/questions.html']
-        self.rules = [Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-questions.html']), 'parse_links'),
+    start_urls = ['http://www.justanswer.com/cell-phones/questions.html']
+    rules = [Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-questions.html']), 'parse_links'),
                  Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-p\d+-questions.html']), 'parse_links')]
-        self._rules = self.rules 
     
     #start_urls also can include url from p1..., and add it into rules.
     def parse_links(self, response):
@@ -21,7 +18,8 @@ class JALinkSpider(CrawlSpider):
         return threadLinks
     
 class JAThreadSpider(CrawlSpider):
-    name = "JAThread"
+    name = "JAThreads"
+    start_urls = None
     
     def __init__(self):
         #urls read from json file
@@ -74,11 +72,11 @@ class JAThreadSpider(CrawlSpider):
             post['accepted'] = link.select("./../../../h3/text()").extract()
                
             posts.append(post)
-            print post
         return thread
 
 class JAExpertSpider(CrawlSpider):
     name = 'JAExperts'
+    start_urls = None
     
     def __init__(self):
         self.start_urls = ['http://www.justanswer.com/cell-phones/experts.html#']
