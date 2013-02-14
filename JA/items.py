@@ -5,7 +5,6 @@ class JAThread(Item):
     question = Field()
     posts = Field()
     
-
 class JAQuestion(Item):
     title = Field()
     content = Field()
@@ -36,5 +35,5 @@ class JAExpert(Item):
 class JAThreadLinks(Item):
     links = Field()
 
-class JAUsers(Item):
-    experts = Field()
+class JAExperts(Item):
+    experts = Field()    

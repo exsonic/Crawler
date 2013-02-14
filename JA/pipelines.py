@@ -1,4 +1,4 @@
-from JA.items import JAThread, JAUsers
+from JA.items import JAThread, JAExperts
 import time
 
 class ExportPipeline(object):
@@ -9,8 +9,9 @@ class ExportPipeline(object):
         strList = strList[0].replace(u'\xa0', u'').replace(u'\r\n', u'').replace('\"', "'").strip()
         strList = ' '.join(strList.split())
         return strList
-        
+            
     def process_item(self, item, spider):
+
         if isinstance(item, JAThread):
             for key in item['question']:
                 item['question'][key] = self.cleanString(item['question'][key])
@@ -24,9 +25,6 @@ class ExportPipeline(object):
                 for key in post:
                     if  key == 'chatCustomer' or key == 'chatExpert' or len(post[key]) == 0:
                         continue
-                    
-                    if key == 'title' and cmp(post[key], 'Expert:'):
-                        post[key] = 'Expert'
                                             
                     post[key] = self.cleanString(post[key])
                     #convert to absolute time
@@ -38,8 +36,16 @@ class ExportPipeline(object):
                         days = int(post[key].split()[1])
                         post[key] = str(int(time.time() - (days * 3600 * 24)))
                     
+                    #handle the issue of unable to get the customer's user name
+                    if key == 'title' and post[key] == 'Expert:':
+                        post[key] = 'Expert Reply'
+                        
+                    if key == 'title' and post[key] == 'Customer':
+                        post[key] = 'Customer Reply'
+                        post['userName'] = 'Customer'
                     
-        if isinstance(item, JAUsers):
+                    
+        if isinstance(item, JAExperts):
             for expert in item['experts']:
                 for key in expert:
                     if key == 'acceptedAnswers' or key == 'posFeedback':

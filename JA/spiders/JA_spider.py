@@ -1,15 +1,25 @@
 from scrapy.contrib.spiders.crawl import CrawlSpider, Rule
 from scrapy.selector import HtmlXPathSelector
-from JA.items import JAPost, JAQuestion, JAThread, JAExpert, JAThreadLinks, JAUsers
+from JA.items import JAPost, JAQuestion, JAThread, JAExpert, JAThreadLinks, JAExperts
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 import json, os
 
+def removePreviousFile(fileName):
+    if os.path.isfile(fileName):
+        os.remove(fileName)
+    else:
+        pass
+
 class JALinkSpider(CrawlSpider):
     name = 'JALinks'
-    start_urls = ['http://www.justanswer.com/cell-phones/questions.html']
-    rules = [Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-questions.html']), 'parse_links'),
-                 Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-p\d+-questions.html']), 'parse_links')]
+    startURLFileName = os.getcwd() + '/linkSpiderStartURL.txt'
+    fileReader = open(startURLFileName)
+    start_urls = fileReader.read().splitlines()
+    fileReader.close()
+    rules = [Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-p\d{1}-questions.html']), 'parse_links'),
+             Rule(SgmlLinkExtractor(allow=[r'/cell-phones/\d{4}-\d{2}-p\d{2}-questions.html']), 'parse_links')]
     
+                    
     #start_urls also can include url from p1..., and add it into rules.
     def parse_links(self, response):
         x = HtmlXPathSelector(response)
@@ -19,20 +29,21 @@ class JALinkSpider(CrawlSpider):
     
 class JAThreadSpider(CrawlSpider):
     name = "JAThreads"
-    start_urls = None
-    
-    def __init__(self):
-        #urls read from json file
-        if os.path.isfile('/Users/exsonic/Dropbox/Courses/Directed_Research/Crawler/JA/links.json'):
-            jsonFile = open('/Users/exsonic/Dropbox/Courses/Directed_Research/Crawler/JA/links.json')
-            try:
-                jsonData = json.load(jsonFile)
-                self.start_urls = jsonData[0]['links']
-            except:
-                jsonData = []
-                self.start_urls = []
+    linksFileName = os.getcwd() + '/links.json'
+    if os.path.isfile(linksFileName):
+        jsonFile = open(linksFileName)
+        try:
+            jsonData = json.load(jsonFile)
+            start_urls = []
+            for linkDict in jsonData:
+                start_urls += linkDict['links']
+                
+        except:
+            jsonData = []
+            start_urls = []
+        finally:
             jsonFile.close()
-
+    
     def parse(self, response):   
         thread = JAThread()
         question = JAQuestion()
@@ -61,31 +72,28 @@ class JAThreadSpider(CrawlSpider):
                 return None
             
             post['title'] = link.select("./../div[@class='JA_profile JA_other']/span[@class='JA_infoLabel']/text()").extract()
-            #if title is empty, delete the question post
-            if not post['title']:
-                continue
-            
             post['userName'] = link.select("./../div[@class='JA_profile JA_other']/a[@class='JA_authorName']/text()").extract()
             post['postTime'] = link.select("./../div[@class='JA_profile JA_other']/span[@class='JA_note']/text()").extract()
             post['chatExpert'] = link.select("./../div[@class='JA_chatExpertMessage'][*]/span/p/text()").extract()
             post['chatCustomer'] = link.select("./../div[@class='JA_chatAskerMessage'][*]/span/p/text()").extract()
             post['accepted'] = link.select("./../../../h3/text()").extract()
+            
+            #skip the duplicate post of question
+            if not post['postTime']:
+                continue
                
             posts.append(post)
         return thread
 
 class JAExpertSpider(CrawlSpider):
     name = 'JAExperts'
-    start_urls = None
-    
-    def __init__(self):
-        self.start_urls = ['http://www.justanswer.com/cell-phones/experts.html#']
+    start_urls = ['http://www.justanswer.com/cell-phones/experts.html#']
  
     def parse(self, response):
         x = HtmlXPathSelector(response)
-        experts = []
-        users = JAUsers()
-        users['experts'] = experts
+        experts = JAExperts()
+        expertsList = []
+        experts['experts'] = expertsList
         
         links = x.select("//div[@class='expert_list']/div/div/div/div/a")
         for link in links:
@@ -96,5 +104,5 @@ class JAExpertSpider(CrawlSpider):
             expert['posFeedback'] = link.select("./../../div[@class='expert_rating JA_column_left']/text()").extract()[1]
             expert['category'] = link.select("//h2[@id='JA_forumName']/text()").extract()
             expert['description'] = link.select("./../../../div[@class='expert_profile']/text()").extract()
-            experts.append(expert)
-        return users
+            expertsList.append(expert)
+        return experts
